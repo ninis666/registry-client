@@ -4,94 +4,117 @@ import requests
 import json
 import sys
 
-host = "rpi-node1:5000"
-base_url = "https://" + host + "/v2/"
-
 headers = {
     'Accept': "application/vnd.docker.distribution.manifest.v2+json"
 }
 
-def get_repo():
-    r = requests.get(base_url + "_catalog", headers=headers)
-    if not r.ok:
-        r.raise_for_status()
-    return json.loads(r.text)['repositories']
+default_host = "localhost:5000"
+default_proto = "https"
 
-def get_tags(name):
-    r = requests.get(base_url + name + "/tags/list", headers=headers)
-    if not r.ok:
-        r.raise_for_status()
-    return json.loads(r.text)['tags']
+class docker_registry:
 
-def get_manifest(name, ref):
-    r = requests.get(base_url + name + "/manifests/" + ref, headers=headers)
-    if not r.ok:
-        r.raise_for_status()
-    return json.loads(r.text)
+    _base_url = None
 
-def del_layer(name, digest):
-    r = requests.delete(base_url + name + "/blobs/" + ref, headers=headers)
-    if not r.ok:
-        r.raise_for_status()
+    def __init__(self, host=None, proto=None):
 
-def get_digest(name=None, tag=None):
-
-    if name is None:
-        repo = get_repo()
-    else:
-        repo = [ name ]
-
-    res = list()
-
-    for r in repo:
-
-        if tag is None:
-            tags = get_tags(r)
+        if host is None:
+            h = "localhost:5000"
         else:
-            tags = [ tag ]
+            h = host
 
-        for t in tags:
-            m = get_manifest(r, t)
-            layers = m['layers']
-            for l in layers:
-                res.append([ r, t, l['digest'] ])
+        if proto is None:
+            p = "https"
+        else:
+            p = proto
 
-    return res
+        self._base_url = p + "://" + h + "/v2/"
 
-def dump_repo(name=None, tag=None):
-    for i in get_digest(name, tag):
-        print "%s %s %s" % (i[0], i[1], i[2])
-    return 0
+    def get_repo(self):
+        r = requests.get(self._base_url + "_catalog", headers=headers)
+        if not r.ok:
+            r.raise_for_status()
+        return json.loads(r.text)['repositories']
 
-def del_repo(name=None, tag=None):
-    table = get_digest(name, tag)
-    return 0
+    def get_tags(self, name):
+        r = requests.get(self._base_url + name + "/tags/list", headers=headers)
+        if not r.ok:
+            r.raise_for_status()
+        return json.loads(r.text)['tags']
+
+    def get_manifest(self, name, ref):
+        r = requests.get(self._base_url + name + "/manifests/" + ref, headers=headers)
+        if not r.ok:
+            r.raise_for_status()
+        return json.loads(r.text)
+
+    def del_layer(self, name, digest):
+        r = requests.delete(self._base_url + name + "/blobs/" + ref, headers=headers)
+        if not r.ok:
+            r.raise_for_status()
+
+    def get_digest(self, name=None, tag=None):
+
+        if name is None:
+            repo = self.get_repo()
+        else:
+            repo = [ name ]
+
+        res = list()
+
+        for r in repo:
+
+            if tag is None:
+                tags = self.get_tags(r)
+            else:
+                tags = [ tag ]
+
+            for t in tags:
+                m = self.get_manifest(r, t)
+                layers = m['layers']
+                for l in layers:
+                    res.append([ r, t, l['digest'] ])
+        return res
+
+    def dump_repo(self, name=None, tag=None):
+        for i in self.get_digest(name, tag):
+            print "%s %s %s" % (i[0], i[1], i[2])
+        return 0
+
+    def del_repo(self, name=None, tag=None):
+        table = self.get_digest(name, tag)
+        return 0
 
 def main(av):
 
     if len(av) >= 2:
-        cmd = av[1]
+        host = av[1]
+    else:
+        host = None
+
+    if len(av) >= 3:
+        cmd = av[2]
     else:
         cmd = None
 
-    if len(av) >= 3:
-        name = av[2]
+    if len(av) >= 4:
+        name = av[3]
     else:
         name = None
 
-    if len(av) >= 4:
-        tag = av[3]
+    if len(av) >= 5:
+        tag = av[4]
     else:
         tag = None
 
+    registry = docker_registry(host)
+
     if (cmd is None) or (cmd == "dump"):
-        return dump_repo(name, tag)
+        return registry.dump_repo(name, tag)
 
     if cmd == "delete":
-        del_repo(name, tag)
+        registry.del_repo(name, tag)
 
     return 0
-
 
 if __name__ == "__main__":
     main(sys.argv)
