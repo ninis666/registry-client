@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 
-import requests
 import json
 import sys
 
-headers = {
+import requests
+
+HEADERS = {
     'Accept': "application/vnd.docker.distribution.manifest.v2+json"
 }
 
-default_host = "localhost:5000"
-default_proto = "https"
+DEFAULT_HOST = "localhost:5000"
+DEFAULT_PROTO = "https"
 
 class docker_registry:
 
@@ -18,37 +19,37 @@ class docker_registry:
     def __init__(self, host=None, proto=None):
 
         if host is None:
-            h = "localhost:5000"
+            h = DEFAULT_HOST
         else:
             h = host
 
         if proto is None:
-            p = "https"
+            p = DEFAULT_PROTO
         else:
             p = proto
 
         self._base_url = p + "://" + h + "/v2/"
 
     def get_repo(self):
-        r = requests.get(self._base_url + "_catalog", headers=headers)
+        r = requests.get(self._base_url + "_catalog", headers=HEADERS)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)['repositories']
 
     def get_tags(self, name):
-        r = requests.get(self._base_url + name + "/tags/list", headers=headers)
+        r = requests.get(self._base_url + name + "/tags/list", headers=HEADERS)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)['tags']
 
     def get_manifest(self, name, ref):
-        r = requests.get(self._base_url + name + "/manifests/" + ref, headers=headers)
+        r = requests.get(self._base_url + name + "/manifests/" + ref, headers=HEADERS)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)
 
     def del_layer(self, name, digest):
-        r = requests.delete(self._base_url + name + "/blobs/" + ref, headers=headers)
+        r = requests.delete(self._base_url + name + "/blobs/" + ref, headers=HEADERS)
         if not r.ok:
             r.raise_for_status()
 
@@ -112,7 +113,7 @@ def main(av):
         return registry.dump_repo(name, tag)
 
     if cmd == "delete":
-        registry.del_repo(name, tag)
+        return registry.del_repo(name, tag)
 
     return 0
 
