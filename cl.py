@@ -11,45 +11,37 @@ HEADERS = {
 
 DEFAULT_HOST = "localhost:5000"
 DEFAULT_PROTO = "https"
+DEFAULT_SECURE_SSL = False
 
 class docker_registry:
 
     _base_url = None
+    _secure_ssl = None
 
-    def __init__(self, host=None, proto=None):
-
-        if host is None:
-            h = DEFAULT_HOST
-        else:
-            h = host
-
-        if proto is None:
-            p = DEFAULT_PROTO
-        else:
-            p = proto
-
-        self._base_url = p + "://" + h + "/v2/"
+    def __init__(self, host=DEFAULT_HOST, proto=DEFAULT_PROTO, secure_ssl=DEFAULT_SECURE_SSL):
+        self._base_url = proto + "://" + host + "/v2/"
+	self._secure_ssl = secure_ssl
 
     def get_repo(self):
-        r = requests.get(self._base_url + "_catalog", headers=HEADERS)
+        r = requests.get(self._base_url + "_catalog", headers=HEADERS, verify=self._secure_ssl)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)['repositories']
 
     def get_tags(self, name):
-        r = requests.get(self._base_url + name + "/tags/list", headers=HEADERS)
+        r = requests.get(self._base_url + name + "/tags/list", headers=HEADERS, verify=self._secure_ssl)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)['tags']
 
     def get_manifest(self, name, ref):
-        r = requests.get(self._base_url + name + "/manifests/" + ref, headers=HEADERS)
+        r = requests.get(self._base_url + name + "/manifests/" + ref, headers=HEADERS, verify=self._secure_ssl)
         if not r.ok:
             r.raise_for_status()
         return json.loads(r.text)
 
     def del_layer(self, name, digest):
-        r = requests.delete(self._base_url + name + "/blobs/" + ref, headers=HEADERS)
+        r = requests.delete(self._base_url + name + "/blobs/" + ref, headers=HEADERS, verify=self._secure_ssl)
         if not r.ok:
             r.raise_for_status()
 
@@ -117,5 +109,4 @@ def main(av):
 
     return 0
 
-if __name__ == "__main__":
-    main(sys.argv)
+main(sys.argv)
